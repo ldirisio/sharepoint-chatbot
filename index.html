@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>SharePoint Search Bot</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 40px; }
+        #results { margin-top: 20px; }
+        .result { margin-bottom: 15px; }
+    </style>
+</head>
+<body>
+    <h1>SharePoint Search Bot</h1>
+    <input type="text" id="query" placeholder="Type your search...">
+    <button id="searchBtn">Search</button>
+
+    <div id="results"></div>
+
+    <script>
+        const searchBtn = document.getElementById("searchBtn");
+        const resultsDiv = document.getElementById("results");
+
+        searchBtn.onclick = async () => {
+            const query = document.getElementById("query").value;
+            resultsDiv.innerHTML = "Searching...";
+
+            try {
+                const res = await fetch("/_api/search/query?querytext='" + encodeURIComponent(query) + "'", {
+                    headers: { "Accept": "application/json;odata=verbose" }
+                });
+                const data = await res.json();
+                const rows = data.d.query.PrimaryQueryResult.RelevantResults.Table.Rows.results;
+
+                if (rows.length === 0) {
+                    resultsDiv.innerHTML = "No results found.";
+                    return;
+                }
+
+                resultsDiv.innerHTML = rows.map(row => {
+                    const cells = row.Cells.results;
+                    const title = cells.find(c => c.Key === "Title")?.Value || "No title";
+                    const url = cells.find(c => c.Key === "Path")?.Value || "#";
+                    return `<div class="result"><a href="${url}" target="_blank">${title}</a></div>`;
+                }).join("");
+            } catch (err) {
+                resultsDiv.innerHTML = "Error fetching results.";
+                console.error(err);
+            }
+        };
+    </script>
+</body>
+</html>
